@@ -42,3 +42,6 @@ class Algorithms:
 
     def get_accuracy(self, y_true, y_pred):
         return accuracy_score(y_true, y_pred)
+
+    def split_data(self, test_size):
+        pass
