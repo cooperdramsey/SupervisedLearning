@@ -3,9 +3,9 @@ import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve, ShuffleSplit
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 
@@ -23,6 +23,8 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("Decision Tree: ",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def neural_network(self, parameters):
         algorithm = MLPClassifier()
@@ -33,6 +35,8 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("Neural Net: ",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def tree_boosting(self, parameters):
         # uses decision tree as the base algorithm by default
@@ -44,6 +48,8 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("AdaBoost:",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def support_vector_machine(self, parameters):
         algorithm = SVC()
@@ -54,9 +60,11 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("SVM:",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def linear_support_vector_machine(self, parameters):
-        algorithm = SVC()
+        algorithm = LinearSVC()
         clf = GridSearchCV(algorithm, parameters, cv=5, iid=False)
         X_train, X_test, y_train, y_test = self.split_data(self.test_split)
         clf.fit(X_train, y_train)
@@ -64,6 +72,8 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("Linear SVM:",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def k_nearest_neighbors(self, parameters):
         algorithm = KNeighborsClassifier()
@@ -74,6 +84,8 @@ class Algorithms:
         scores = self.get_scores(y_test, y_pred)
         print("KNN:",
               "Acc: " + str(scores['acc'] * 100) + "%")
+        print(clf.best_params_.keys())
+        print(clf.best_params_.items())
 
     def load_data(self, data_path):
         return pd.read_csv(data_path)
