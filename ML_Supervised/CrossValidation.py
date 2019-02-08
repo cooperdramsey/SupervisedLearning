@@ -6,24 +6,24 @@ param_grids = {'tree':
                    [{'criterion': ['gini', 'entropy'],
                      'splitter': ['best', 'random'],
                      'min_samples_leaf':[1, 2, 4, 5, 6],
-                     'min_samples_split': [2]
+                     'min_samples_split': [2, 3, 4, 5]
                      }],
                'neural': [{'hidden_layer_sizes': [(100,)],
-                           'activation': ['relu'], #'identity', 'logistic', 'tanh',
+                           'activation': ['relu', 'identity', 'logistic', 'tanh'], #'identity', 'logistic', 'tanh',
                            'alpha': [0.0001],
-                           'learning_rate': ['constant'], # 'constant', 'invscaling', 'adaptive'
+                           'solver': ['adam'],
                            'learning_rate_init': [0.001],
                            'max_iter': [2000],
                            }],
-               'boost': [{'n_estimators': [50, 25],
-                          'learning_rate': [1, 0.5]
+               'boost': [{'n_estimators': [50, 25, 75, 100],
+                          'learning_rate': [1, 0.5, 0.75, 0.25]
                           }],
-               'svm': [{'C': [1],  # just add zeros
-                        'kernel': ['linear'], # rbf
+               'svm': [{'C': [1, 10, 100, 1000],  # just add zeros
+                        'kernel': ['rbf'], # rbf
                         'gamma': ['auto'] # 0.0001
                         }],
-               'knn': [{'n_neighbors': [5, 8, 10]}],
-               'linearSVM': [{'C': [1],
+               'knn': [{'n_neighbors': [3, 4, 5, 7, 9]}],
+               'linearSVM': [{'C': [1, 10, 100, 1000],
                               'gamma': ['scale']}]
                }
 test_split = 0.4
@@ -100,14 +100,14 @@ tests_2.k_nearest_neighbors(param_grids['knn'])
 end = timer()
 print(end - start)
 
-# # Linear SVM
-# start = timer()
-# tests_2.linear_support_vector_machine(param_grids['linearSVM'])
-# end = timer()
-# print(end - start)
-#
-# # SVM
-# start = timer()
-# tests_2.support_vector_machine(param_grids['svm'])
-# end = timer()
-# print(end - start)
+# Linear SVM
+start = timer()
+tests_2.linear_support_vector_machine(param_grids['linearSVM'])
+end = timer()
+print(end - start)
+
+# SVM
+start = timer()
+tests_2.support_vector_machine(param_grids['svm'])
+end = timer()
+print(end - start)
