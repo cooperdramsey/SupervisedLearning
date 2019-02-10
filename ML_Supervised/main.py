@@ -109,374 +109,374 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
     return plt
 
 
-# SET THESE PARAMETERS TO DETERMINE WHICH MODELS TO RUN
+if __name__ == '__main__':
+    # SET THESE PARAMETERS TO DETERMINE WHICH MODELS TO RUN
+    # NOTE: Setting use_best_params to False and data_set to 'loan' will result in very slow runtimes
+    use_best_params = True  # Set to True to skip Grid Search on parameters and use previously found best parameters
+    data_set = 'wine'  # Wine data set is 'wine' and is 1,600 rows, Loan data set is 'loan' and is 30,000 rows
 
-# NOTE: Setting use_best_params to False and data_set to 'loan' will result in very slow runtimes
-use_best_params = True  # Set to True to skip Grid Search on parameters and use previously found best parameters
-data_set = 'loan'  # Wine data set is 'wine' and is 1,600 rows, Loan data set is 'loan' and is 30,000 rows
+    # CROSS VALIDATION
+    param_grids = {'tree':
+                       [{'criterion': ['gini', 'entropy'],
+                         'splitter': ['best', 'random'],
+                         'min_samples_leaf':[1, 2, 4, 5, 6],
+                         'min_samples_split': [2, 3, 4, 5]
+                         }],
+                   'neural': [{'hidden_layer_sizes': [(100,)],
+                               'activation': ['relu', 'identity', 'logistic', 'tanh'], #'identity', 'logistic', 'tanh',
+                               'alpha': [0.0001, 0.001, 0.01],
+                               'solver': ['adam'],
+                               'learning_rate_init': [0.001, 0.01],
+                               'max_iter': [2000],
+                               }],
+                   'boost': [{'n_estimators': [50, 25, 75, 100],
+                              'learning_rate': [1, 0.5, 0.75, 0.25]
+                              }],
+                   'rbf-svm': [{'C': [1, 100],  # just add zeros
+                            'kernel': ['rbf'], # rbf
+                            }],
+                    'linear-svm': [{'C': [1, 100],  # just add zeros
+                            'kernel': ['linear'], # rbf
+                            }],
+                   'knn': [{'n_neighbors': range(1, 101, 3)}]
+                   }
 
-# CROSS VALIDATION
-param_grids = {'tree':
-                   [{'criterion': ['gini', 'entropy'],
-                     'splitter': ['best', 'random'],
-                     'min_samples_leaf':[1, 2, 4, 5, 6],
-                     'min_samples_split': [2, 3, 4, 5]
-                     }],
-               'neural': [{'hidden_layer_sizes': [(100,)],
-                           'activation': ['relu', 'identity', 'logistic', 'tanh'], #'identity', 'logistic', 'tanh',
-                           'alpha': [0.0001, 0.001, 0.01],
-                           'solver': ['adam'],
-                           'learning_rate_init': [0.001, 0.01],
-                           'max_iter': [2000],
-                           }],
-               'boost': [{'n_estimators': [50, 25, 75, 100],
-                          'learning_rate': [1, 0.5, 0.75, 0.25]
-                          }],
-               'rbf-svm': [{'C': [1, 100],  # just add zeros
-                        'kernel': ['rbf'], # rbf
-                        }],
-                'linear-svm': [{'C': [1, 100],  # just add zeros
-                        'kernel': ['linear'], # rbf
-                        }],
-               'knn': [{'n_neighbors': range(1, 101, 3)}]
-               }
-
-# Plot learning curves
-if data_set is 'wine':
-    data_path = 'winequality-red.csv'
-else:
-    data_path = 'UCI_Credit_Card.csv'
-
-# Load CSV data
-X, y = load_data(data_path)
-
-# Cross validation with 100 iterations to get smoother mean test and train
-# score curves, each time with 20% data randomly selected as a validation set.
-cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)  # used for everything except SVM
-cv_svm = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)  # used for SVM to reduce training time
-
-title = "Learning Curves Decision Tree"
-if use_best_params:
+    # Plot learning curves
     if data_set is 'wine':
-        clf = DecisionTreeClassifier(criterion='entropy', min_samples_split=2, min_samples_leaf=1, splitter='best')
+        data_path = 'winequality-red.csv'
     else:
-        clf = DecisionTreeClassifier(criterion='gini', min_samples_leaf=6, min_samples_split=3, splitter='best')
-else:
-    # Cross validation to get best estimators
-    algorithm = DecisionTreeClassifier()
-    clf = GridSearchCV(algorithm, param_grids['tree'], cv=cv, iid=False, n_jobs=-1)
+        data_path = 'UCI_Credit_Card.csv'
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
+    # Load CSV data
+    X, y = load_data(data_path)
 
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
+    # Cross validation with 100 iterations to get smoother mean test and train
+    # score curves, each time with 20% data randomly selected as a validation set.
+    cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)  # used for everything except SVM
+    cv_svm = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)  # used for SVM to reduce training time
 
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
-
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
-
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
-
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = DecisionTreeClassifier(criterion=clf.best_params_['criterion'],
-                                       splitter=clf.best_params_['splitter'],
-                                       min_samples_leaf=clf.best_params_['min_samples_leaf'],
-                                       min_samples_split=clf.best_params_['min_samples_split'])
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-
-# Print Results
-print("Decision Tree:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
-# ##################################################################################
-
-title = "Learning Curves AdaBoosted Tree"
-if use_best_params:
-    if data_set is 'wine':
-        clf = AdaBoostClassifier(n_estimators=25, learning_rate=0.25)
+    title = "Learning Curves Decision Tree"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = DecisionTreeClassifier(criterion='entropy', min_samples_split=2, min_samples_leaf=1, splitter='best')
+        else:
+            clf = DecisionTreeClassifier(criterion='gini', min_samples_leaf=6, min_samples_split=3, splitter='best')
     else:
-        clf = AdaBoostClassifier(n_estimators=25, learning_rate=0.75)
-else:
-    # Cross validation to get best estimators
-    algorithm = AdaBoostClassifier()
-    clf = GridSearchCV(algorithm, param_grids['boost'], cv=cv, iid=False, n_jobs=-1)
+        # Cross validation to get best estimators
+        algorithm = DecisionTreeClassifier()
+        clf = GridSearchCV(algorithm, param_grids['tree'], cv=cv, iid=False, n_jobs=-1)
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
 
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
-
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
-
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
-
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
-
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = AdaBoostClassifier(n_estimators=clf.best_params_['n_estimators'],
-                                   learning_rate=clf.best_params_['learning_rate'])
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-
-# Print Results
-print("AdaBoosted Tree:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
-# ##################################################################################
-
-title = "Learning Curves Neural Network"
-if use_best_params:
-    if data_set is 'wine':
-        clf = MLPClassifier(max_iter=2000, solver='adam', alpha=0.0001, activation='tanh', learning_rate_init=0.001)
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
     else:
-        clf = MLPClassifier(max_iter=2000, solver='adam', alpha=0.0001, learning_rate_init=0.001, activation='logistic')
-else:
-    # Cross validation to get best estimators
-    algorithm = MLPClassifier()
-    clf = GridSearchCV(algorithm, param_grids['neural'], cv=cv, iid=False, n_jobs=-1)
+        clf.fit(X_train, y_train)
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
-
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
-
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
-
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
-
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
-
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = MLPClassifier(activation=clf.best_params_['activation'],
-                              alpha=clf.best_params_['alpha'],
-                              learning_rate_init=clf.best_params_['learning_rate_init'],
-                              max_iter=2000)
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-
-    # For nueral network, graph training iterations to accuracy
-    # plt.figure()
-    # plt.ylabel("Loss")
-    # plt.xlabel("Epochs")
-    # plt.title('Neural Network Loss vs Epochs')
-    # plt.plot(train_clf.loss_curve_)
-    # plt.show()
-
-# Print Results
-print("Neural Network:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
-##################################################################################
-
-title = "Learning Curves KNN"
-if use_best_params:
-    if data_set is 'wine':
-        clf = KNeighborsClassifier(n_neighbors=27)
+    if use_best_params:
+        estimator = clf
     else:
-        clf = KNeighborsClassifier(n_neighbors=82)
-else:
-    # Cross validation to get best estimators
-    algorithm = KNeighborsClassifier()
-    clf = GridSearchCV(algorithm, param_grids['knn'], cv=cv, iid=False, n_jobs=-1)
+        estimator = clf.best_estimator_
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
 
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
 
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = DecisionTreeClassifier(criterion=clf.best_params_['criterion'],
+                                           splitter=clf.best_params_['splitter'],
+                                           min_samples_leaf=clf.best_params_['min_samples_leaf'],
+                                           min_samples_split=clf.best_params_['min_samples_split'])
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
 
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
+    # Print Results
+    print("Decision Tree:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+    # ##################################################################################
 
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
-
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = KNeighborsClassifier(n_neighbors=clf.best_params_['n_neighbors'])
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-
-# Print Results
-print("KNN:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
-# ##################################################################################
-
-# Scale data for use in SVMs
-min_max_scaler = MinMaxScaler()
-X_minmax = min_max_scaler.fit_transform(X)
-
-title = "Learning Curves Linear SVM"
-if use_best_params:
-    if data_set is 'wine':
-        clf = SVC(C=1, cache_size=1000, kernel='linear')
+    title = "Learning Curves AdaBoosted Tree"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = AdaBoostClassifier(n_estimators=25, learning_rate=0.25)
+        else:
+            clf = AdaBoostClassifier(n_estimators=25, learning_rate=0.75)
     else:
-        clf = SVC(C=100, cache_size=1000, kernel='linear', class_weight='balanced')
-else:
-    # Cross validation to get best estimators
-    algorithm = SVC(cache_size=1000)
-    clf = GridSearchCV(algorithm, param_grids['linear-svm'], cv=cv_svm, iid=False, n_jobs=-1)
+        # Cross validation to get best estimators
+        algorithm = AdaBoostClassifier()
+        clf = GridSearchCV(algorithm, param_grids['boost'], cv=cv, iid=False, n_jobs=-1)
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X_minmax, y, 0.2)
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
 
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
-
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
-
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X_minmax, y, cv=cv_svm, n_jobs=-1)
-
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
-
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = SVC(C=clf.best_params_['C'], kernel='linear', cache_size=1000)
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-
-# Print Results
-print("Linear SVM:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
-# ##################################################################################
-
-title = "Learning Curves RBF SVM"
-if use_best_params:
-    if data_set is 'wine':
-        clf = SVC(C=100, cache_size=1000, kernel='rbf', gamma='auto')
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
     else:
-        clf = SVC(C=100, cache_size=1000, kernel='rbf', gamma='auto', class_weight='balanced')
-else:
-    # Cross validation to get best estimators
-    algorithm = SVC(cache_size=1000)
-    clf = GridSearchCV(algorithm, param_grids['rbf-svm'], cv=cv_svm, iid=False, n_jobs=-1)
+        clf.fit(X_train, y_train)
 
-# Train Model
-X_train, X_test, y_train, y_test = split_data(X_minmax, y, 0.2)
+    if use_best_params:
+        estimator = clf
+    else:
+        estimator = clf.best_estimator_
 
-train_time = None
-if use_best_params:
-    start = timer()
-    clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
-else:
-    clf.fit(X_train, y_train)
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
 
-if use_best_params:
-    estimator = clf
-else:
-    estimator = clf.best_estimator_
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
 
-# Plot Learning Curve
-plot_learning_curve(estimator, title, X_minmax, y, cv=cv_svm, n_jobs=-1)
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = AdaBoostClassifier(n_estimators=clf.best_params_['n_estimators'],
+                                       learning_rate=clf.best_params_['learning_rate'])
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
 
-# Final test on held out training data
-y_pred = estimator.predict(X_test)
-acc = accuracy_score(y_pred, y_test)
+    # Print Results
+    print("AdaBoosted Tree:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+    # ##################################################################################
 
-# Check Training Time If used cross validation
-if not use_best_params:
-    train_clf = SVC(C=clf.best_params_['C'], kernel='rbf', cache_size=1000, gamma='auto')
-    start = timer()
-    train_clf.fit(X_train, y_train)
-    end = timer()
-    train_time = end - start
+    title = "Learning Curves Neural Network"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = MLPClassifier(max_iter=2000, solver='adam', alpha=0.0001, activation='tanh', learning_rate_init=0.001)
+        else:
+            clf = MLPClassifier(max_iter=2000, solver='adam', alpha=0.0001, learning_rate_init=0.001, activation='logistic')
+    else:
+        # Cross validation to get best estimators
+        algorithm = MLPClassifier()
+        clf = GridSearchCV(algorithm, param_grids['neural'], cv=cv, iid=False, n_jobs=-1)
 
-# Print Results
-print("RBF SVM:")
-if not use_best_params:
-    print(clf.best_params_.items())  # shows best params selected
-print("Train Time: {:10.6f}s".format(train_time))
-print("Accuracy: {:3.4f}%".format(acc))
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
 
-plt.show()
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+    else:
+        clf.fit(X_train, y_train)
+
+    if use_best_params:
+        estimator = clf
+    else:
+        estimator = clf.best_estimator_
+
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
+
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
+
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = MLPClassifier(activation=clf.best_params_['activation'],
+                                  alpha=clf.best_params_['alpha'],
+                                  learning_rate_init=clf.best_params_['learning_rate_init'],
+                                  max_iter=2000)
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+
+        # For nueral network, graph training iterations to accuracy
+        # plt.figure()
+        # plt.ylabel("Loss")
+        # plt.xlabel("Epochs")
+        # plt.title('Neural Network Loss vs Epochs')
+        # plt.plot(train_clf.loss_curve_)
+        # plt.show()
+
+    # Print Results
+    print("Neural Network:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+    ##################################################################################
+
+    title = "Learning Curves KNN"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = KNeighborsClassifier(n_neighbors=27)
+        else:
+            clf = KNeighborsClassifier(n_neighbors=82)
+    else:
+        # Cross validation to get best estimators
+        algorithm = KNeighborsClassifier()
+        clf = GridSearchCV(algorithm, param_grids['knn'], cv=cv, iid=False, n_jobs=-1)
+
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X, y, 0.2)
+
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+    else:
+        clf.fit(X_train, y_train)
+
+    if use_best_params:
+        estimator = clf
+    else:
+        estimator = clf.best_estimator_
+
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X, y, cv=cv, n_jobs=-1)
+
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
+
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = KNeighborsClassifier(n_neighbors=clf.best_params_['n_neighbors'])
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+
+    # Print Results
+    print("KNN:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+    # ##################################################################################
+
+    # Scale data for use in SVMs
+    min_max_scaler = MinMaxScaler()
+    X_minmax = min_max_scaler.fit_transform(X)
+
+    title = "Learning Curves Linear SVM"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = SVC(C=1, cache_size=1000, kernel='linear')
+        else:
+            clf = SVC(C=100, cache_size=1000, kernel='linear', class_weight='balanced')
+    else:
+        # Cross validation to get best estimators
+        algorithm = SVC(cache_size=1000)
+        clf = GridSearchCV(algorithm, param_grids['linear-svm'], cv=cv_svm, iid=False, n_jobs=-1)
+
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X_minmax, y, 0.2)
+
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+    else:
+        clf.fit(X_train, y_train)
+
+    if use_best_params:
+        estimator = clf
+    else:
+        estimator = clf.best_estimator_
+
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X_minmax, y, cv=cv_svm, n_jobs=-1)
+
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
+
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = SVC(C=clf.best_params_['C'], kernel='linear', cache_size=1000)
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+
+    # Print Results
+    print("Linear SVM:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+    # ##################################################################################
+
+    title = "Learning Curves RBF SVM"
+    if use_best_params:
+        if data_set is 'wine':
+            clf = SVC(C=100, cache_size=1000, kernel='rbf', gamma='auto')
+        else:
+            clf = SVC(C=100, cache_size=1000, kernel='rbf', gamma='auto', class_weight='balanced')
+    else:
+        # Cross validation to get best estimators
+        algorithm = SVC(cache_size=1000)
+        clf = GridSearchCV(algorithm, param_grids['rbf-svm'], cv=cv_svm, iid=False, n_jobs=-1)
+
+    # Train Model
+    X_train, X_test, y_train, y_test = split_data(X_minmax, y, 0.2)
+
+    train_time = None
+    if use_best_params:
+        start = timer()
+        clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+    else:
+        clf.fit(X_train, y_train)
+
+    if use_best_params:
+        estimator = clf
+    else:
+        estimator = clf.best_estimator_
+
+    # Plot Learning Curve
+    plot_learning_curve(estimator, title, X_minmax, y, cv=cv_svm, n_jobs=-1)
+
+    # Final test on held out training data
+    y_pred = estimator.predict(X_test)
+    acc = accuracy_score(y_pred, y_test)
+
+    # Check Training Time If used cross validation
+    if not use_best_params:
+        train_clf = SVC(C=clf.best_params_['C'], kernel='rbf', cache_size=1000, gamma='auto')
+        start = timer()
+        train_clf.fit(X_train, y_train)
+        end = timer()
+        train_time = end - start
+
+    # Print Results
+    print("RBF SVM:")
+    if not use_best_params:
+        print(clf.best_params_.items())  # shows best params selected
+    print("Train Time: {:10.6f}s".format(train_time))
+    print("Accuracy: {:3.4f}%".format(acc))
+
+    plt.show()
